@@ -24,7 +24,8 @@ import {
   Cpu,
   ChevronRight,
   ChevronLeft,
-  Car
+  Car,
+  Trash2
 } from 'lucide-react';
 import { TransportType, SearchResult, UserLocation, SavedSearch } from './types';
 import { searchTransportInfo } from './services/geminiService';
@@ -312,7 +313,7 @@ const App: React.FC = () => {
             
             {/* BRAND SECTION */}
             <div className="mb-10 text-center">
-              <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase italic leading-none">
+              <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase italic leading-none text-white">
                 AI <span className="text-indigo-500">TRAFFIC</span>
               </h1>
               <p className="text-[8px] md:text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] mt-2">Global Urban Mobility Telemetry</p>
@@ -330,7 +331,7 @@ const App: React.FC = () => {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="DESTINAZIONE, VIA O TRATTA URBANA..."
-                    className="w-full bg-transparent border-none py-6 md:py-8 pl-16 md:pl-20 pr-10 text-lg md:text-xl font-black focus:ring-0 placeholder:text-slate-800 uppercase tracking-tight"
+                    className="w-full bg-transparent border-none py-6 md:py-8 pl-16 md:pl-20 pr-10 text-lg md:text-xl font-black focus:ring-0 placeholder:text-slate-800 uppercase tracking-tight text-white"
                   />
                 </div>
                 <div className="flex gap-2 p-1">
@@ -364,7 +365,23 @@ const App: React.FC = () => {
             )}
 
             {/* RESULTS ENGINE */}
-            <div className="space-y-12 pb-32">
+            <div className="space-y-6 pb-32">
+              {results.length > 0 && (
+                <div className="flex items-center justify-between mb-4 animate-in fade-in slide-in-from-top-2 duration-500">
+                  <div className="flex items-center gap-2">
+                     <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                     <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Risultati Attivi</span>
+                  </div>
+                  <button 
+                    onClick={resetSearch}
+                    className="flex items-center gap-2 px-6 py-3 glass hover:bg-red-500/10 text-red-400 text-[10px] font-black uppercase rounded-2xl border border-red-500/20 transition-all active:scale-95 shadow-xl"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Svuota Dashboard
+                  </button>
+                </div>
+              )}
+
               {results.length === 0 && !isSearching && (
                 <div className="text-center py-20 md:py-32 border border-dashed border-white/5 rounded-[4rem] flex flex-col items-center justify-center bg-white/[0.01] opacity-40">
                   <div className="bg-slate-900/80 p-6 rounded-3xl mb-8 border border-white/5">
@@ -390,7 +407,7 @@ const App: React.FC = () => {
                             <span className="w-1 h-1 bg-slate-800 rounded-full" />
                             <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">{result.timestamp}</span>
                           </div>
-                          <h3 className="text-xl md:text-3xl font-black uppercase tracking-tighter truncate max-w-[200px] md:max-w-md">{result.query}</h3>
+                          <h3 className="text-xl md:text-3xl font-black uppercase tracking-tighter truncate max-w-[200px] md:max-w-md text-white">{result.query}</h3>
                         </div>
                       </div>
                       <div className="flex gap-2">

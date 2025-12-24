@@ -1,0 +1,7 @@
+{
+  "name": "Transito AI",
+  "description": "A cutting-edge transport hub that uses AI to track trains, planes, ships, and metro systems in real-time with global search capabilities and geolocation.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

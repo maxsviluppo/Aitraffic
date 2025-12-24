@@ -7,10 +7,16 @@ export const searchTransportInfo = async (
   type: TransportType,
   location?: UserLocation
 ): Promise<SearchResult> => {
-  // Always create a new GoogleGenAI instance right before the call as per guidelines
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Ensure we safely access process.env in browser environments
+  const apiKey = (window as any).process?.env?.API_KEY || (import.meta as any).env?.VITE_API_KEY;
   
-  let contextualPrompt = `Sei l'AI Core di un sistema di navigazione automobilistico avanzato chiamato TRANSITO. Rispondi in ITALIANO.
+  if (!apiKey) {
+    throw new Error("API_KEY_MISSING: Dashboard require valid authentication.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+  
+  let contextualPrompt = `Sei l'AI Core di un sistema di navigazione avanzato chiamato TRANSITO. Rispondi in ITALIANO.
 Analisi richiesta: ${query}. `;
 
   if (type !== TransportType.ALL) {
@@ -24,15 +30,12 @@ Analisi richiesta: ${query}. `;
   contextualPrompt += `
 REGOLE DI RISPOSTA (DASHBOARD FORMAT):
 1. TABELLA TELEMETRICA: Genera una tabella Markdown rigorosa.
-   Colonne: | Mezzo | Partenza | Arrivo | Stato | Costo/Traffico | Note |
-   Esempi Mezzo: 🚆 (Treno), ✈️ (Volo), 🚢 (Nave), 🚇 (Metro), 🚌 (Bus), 🚗 (Auto/Strada).
-2. TRAFFICO STRADALE: Includi dati su congestione, incidenti e tempi di percorrenza stimati per tratti urbani.
-3. PRECISIONE ORARIA: Orari in formato HH:mm. Evidenzia ritardi o "code a tratti".
-4. STATO: [REGOLARE] (verde), [RITARDO] (rosso), [TRAFFICO ALTO] (arancione), [TRAFFICO FLUIDO] (verde smeraldo).
-5. MODULO COSTI: Includi prezzi biglietti/abbonamenti. Per il traffico stradale, indica se ci sono pedaggi o ZTL attive.
-6. INFO AGGIUNTIVE: Menziona scioperi, lavori stradali, chiusure di svincoli o gate aeroportuali.
-7. SORGENTI: Verifica dati su Google Search tramite siti ufficiali (Trenitalia, ATM, Google Maps News, Autostrade per l'Italia, ecc.).
-8. STILE: Tecnico, asciutto, dashboard-ready.`;
+   | Mezzo | Partenza | Arrivo | Stato | Costo/Traffico | Note |
+2. TRAFFICO STRADALE: Analizza congestione, incidenti e tempi stimati per tratti urbani.
+3. STATO: [REGOLARE], [RITARDO], [TRAFFICO ALTO], [TRAFFICO FLUIDO].
+4. MODULO COSTI: Includi prezzi biglietti, abbonamenti, pedaggi o ZTL.
+5. SORGENTI: Cerca dati su Google Search (Trenitalia, ATM, Autostrade, ecc.).
+6. STILE: Tecnico, minimale, dashboard-ready.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -61,7 +64,7 @@ REGOLE DI RISPOSTA (DASHBOARD FORMAT):
       type
     };
   } catch (error: any) {
-    console.error("Search failed:", error);
+    console.error("Dashboard Analytics Search failed:", error);
     throw error;
   }
 };

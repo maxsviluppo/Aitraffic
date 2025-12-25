@@ -29,7 +29,9 @@ import {
   Trash2,
   AlertCircle,
   Clock,
-  Gauge
+  Gauge,
+  Ticket,
+  Timer
 } from 'lucide-react';
 import { TransportType, SearchResult, UserLocation, SavedSearch, MapPoint } from './types';
 import { searchTransportInfo } from './services/geminiService';
@@ -42,8 +44,8 @@ const tutorSteps = [
     desc: "Il sistema ora utilizza il motore Lite per una maggiore velocità e monitoraggio del traffico urbano integrato."
   },
   {
-    title: "Smart Traffic",
-    desc: "Cerca una città per ricevere aggiornamenti istantanei sulla viabilità e congestione stradale."
+    title: "Dettagli Tecnici",
+    desc: "Ricevi numeri di bus, orari dei treni e costi stimati per ogni tratta cercata."
   }
 ];
 
@@ -56,7 +58,7 @@ const App: React.FC = () => {
   const [location, setLocation] = useState<UserLocation | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [showTutor, setShowTutor] = useState(() => !localStorage.getItem('transito_setup_v40_done'));
+  const [showTutor, setShowTutor] = useState(() => !localStorage.getItem('transito_setup_v41_done'));
   const [tutorStep, setTutorStep] = useState(0);
   const [isListening, setIsListening] = useState(false);
   
@@ -195,22 +197,6 @@ const App: React.FC = () => {
               </button>
             </div>
 
-            <div>
-              <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mb-3 flex items-center gap-2"><LayoutDashboard className="w-3 h-3" /> TYPE</p>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { id: TransportType.ALL, label: 'TUTTI', icon: <Navigation className="w-3 h-3" /> },
-                  { id: TransportType.TRAIN, label: 'TRENI', icon: <Train className="w-3 h-3" /> },
-                  { id: TransportType.ROAD, label: 'AUTO', icon: <Car className="w-3 h-3" /> },
-                  { id: TransportType.PLANE, label: 'VOLI', icon: <Plane className="w-3 h-3" /> },
-                ].map(item => (
-                  <button key={item.id} onClick={() => setSelectedType(item.id as TransportType)} className={`flex items-center gap-2 p-3 rounded-lg border text-[8px] font-black uppercase ${selectedType === item.id ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-white/5 border-white/5 text-slate-500'}`}>
-                    {item.icon} {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-full p-4 border border-red-500/20 text-red-500 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2">
               <Trash2 className="w-3.5 h-3.5" /> RESET
             </button>
@@ -268,21 +254,21 @@ const App: React.FC = () => {
               )}
 
               {results.map((result, idx) => (
-                <div key={idx} className="glass p-6 md:p-12 rounded-[2.5rem] border border-white/10 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700 relative overflow-hidden group">
+                <div key={idx} className="glass p-5 md:p-12 rounded-[2.5rem] border border-white/10 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700 relative overflow-hidden group">
                   <div className="flex items-center justify-between mb-6 relative z-10">
                     <div className="flex items-center gap-4">
                       <div className="p-3 bg-indigo-600/10 rounded-xl border border-indigo-500/20">
                          <Activity className="w-5 h-5 text-indigo-500" />
                       </div>
                       <div>
-                        <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest leading-none mb-1">{result.type} FEED</p>
+                        <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest leading-none mb-1">{result.type} LIVE DATA</p>
                         <h3 className="text-lg md:text-3xl font-black uppercase text-white tracking-tighter italic leading-none">{result.query}</h3>
                       </div>
                     </div>
                     <span className="text-[8px] font-black text-slate-600 uppercase bg-white/5 px-3 py-1 rounded-lg border border-white/5">{result.timestamp}</span>
                   </div>
                   
-                  <div className="text-slate-400 text-[13px] md:text-base leading-relaxed uppercase font-medium space-y-4 relative z-10" dangerouslySetInnerHTML={{ __html: formatMarkdown(result.text) }} />
+                  <div className="text-slate-400 text-[13px] md:text-base leading-relaxed uppercase font-medium space-y-4 relative z-10 mobile-content" dangerouslySetInnerHTML={{ __html: formatMarkdown(result.text) }} />
                   
                   {result.sources.length > 0 && (
                     <div className="mt-8 pt-6 border-t border-white/5 flex gap-2 overflow-x-auto pb-4 scrollbar-hide relative z-10">
@@ -312,7 +298,7 @@ const App: React.FC = () => {
               if (tutorStep < tutorSteps.length - 1) setTutorStep(tutorStep + 1);
               else {
                 setShowTutor(false); 
-                localStorage.setItem('transito_setup_v40_done', 'true');
+                localStorage.setItem('transito_setup_v41_done', 'true');
               }
             }} className="w-full bg-white text-black font-black py-4 rounded-[1.5rem] text-[10px] uppercase tracking-[0.2em] transition-all shadow-2xl hover:bg-indigo-600 hover:text-white">
               {tutorStep === tutorSteps.length - 1 ? "AVVIA" : "SUCCESSIVO"}
@@ -336,7 +322,18 @@ function formatMarkdown(text: string) {
     .replace(/\[FLUIDO\]/g, '<span class="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded border border-emerald-400/30 text-[8px] font-black tracking-widest">TRAFFICO FLUIDO</span>')
     .replace(/\[RALLENTAMENTI\]/g, '<span class="px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded border border-yellow-400/30 text-[8px] font-black tracking-widest">RALLENTAMENTI</span>')
     .replace(/(\d+[,.]\d{2}\s*€|€\s*\d+[,.]\d{2}|\d+\s*€)/g, '<span class="text-emerald-400 font-black px-1.5 py-0.5 bg-emerald-400/5 rounded border border-emerald-400/10">$1</span>')
-    .replace(/\|/g, '<span class="text-slate-800">|</span>')
+    // Styling for tables (Mobile Horizontal Scroll Container)
+    .replace(/\|(.+?)\|/g, (match) => {
+      // Small hack to wrap tables in a scrollable div
+      return `<div class="overflow-x-auto my-4 scrollbar-hide border border-white/5 rounded-xl bg-black/20"><table class="min-w-full text-[11px]">${match}</table></div>`;
+    })
+    // Cleaning extra table markings that might result from the above
+    .replace(/<\/table><\/div>\s*<div class="overflow-x-auto my-4 scrollbar-hide border border-white\/5 rounded-xl bg-black\/20"><table class="min-w-full text-\[11px\]">/g, '')
+    // Standard table element styling
+    .replace(/<tr>/g, '<tr class="border-b border-white/5 last:border-0">')
+    .replace(/<td>/g, '<td class="px-3 py-2 text-slate-300">')
+    .replace(/<th>/g, '<th class="px-3 py-2 text-indigo-400 font-black uppercase text-[9px] text-left bg-white/5">')
+    .replace(/\|/g, '') 
     .split('\n').map(line => line.trim() ? `<p class="my-3 tracking-tight">${line}</p>` : '').join('');
 }
 

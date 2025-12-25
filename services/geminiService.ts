@@ -23,12 +23,17 @@ Cerca info su: ${query}. `;
   if (location) contextualPrompt += `Posizione utente: ${location.lat}, ${location.lng}. `;
   
   contextualPrompt += `
-REGOLE DI OUTPUT:
-1. TABELLA: Mostra orari, prezzi o linee in una tabella Markdown.
-2. TRAFFICO URBANO: Se la ricerca riguarda una città o strade, fornisci una sezione "STATO TRAFFICO" con indicatori: [FLUIDO], [RALLENTAMENTI], [INTENSO]. Specifica le zone critiche.
-3. STATUS TAGS: Usa [REGOLARE], [RITARDO], [TRAFFICO ALTO], [CANCELLATO].
-4. GEO_DATA: Fondamentale per la mappa! Aggiungi a fine testo: [GEO_DATA: [{"lat": 45.46, "lng": 9.19, "label": "Duomo - Traffico Intenso", "type": "ROAD", "status": "TRAFFICO ALTO"}]]
-5. FONTI: Usa Google Search per info tempo reale su scioperi, incidenti o cantieri attivi OGGI.`;
+REGOLE DI OUTPUT (FOCUS DETTAGLI TECNICI):
+1. SCHEDA TECNICA: Per ogni opzione di viaggio, specifica OBBLIGATORIAMENTE:
+   - Identificativo Mezzo (es. Treno Frecciarossa 9504, Bus Linea 73, Volo AZ204).
+   - Orari precisi di Partenza e Arrivo.
+   - Durata del singolo tratto (es. "45 min").
+   - Costo stimato in Euro (€).
+2. TABELLA MOBILE: Usa tabelle Markdown semplici (max 3-4 colonne) per orari e costi.
+3. TRAFFICO URBANO: Fornisci una sezione "VIABILITÀ" con indicatori: [FLUIDO], [RALLENTAMENTI], [INTENSO].
+4. STATUS TAGS: Usa [REGOLARE], [RITARDO], [TRAFFICO ALTO], [CANCELLATO].
+5. GEO_DATA: Aggiungi a fine testo per la mappa: [GEO_DATA: [{"lat": 45.46, "lng": 9.19, "label": "Stazione Centrale - Treno 9504", "type": "TRAIN", "status": "REGOLARE"}]]
+6. FONTI: Usa Google Search per info tempo reale su scioperi o ritardi odierni.`;
 
   try {
     const response = await ai.models.generateContent({

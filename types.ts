@@ -8,6 +8,14 @@ export enum TransportType {
   ROAD = 'ROAD'
 }
 
+export interface MapPoint {
+  lat: number;
+  lng: number;
+  label: string;
+  type: TransportType;
+  status?: string;
+}
+
 export interface SearchSource {
   title: string;
   uri: string;
@@ -19,6 +27,7 @@ export interface SearchResult {
   sources: SearchSource[];
   timestamp: string;
   type: TransportType;
+  points: MapPoint[];
 }
 
 export interface SavedSearch {

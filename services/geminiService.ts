@@ -1,20 +1,15 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { SearchResult, TransportType, UserLocation } from "../types";
+import { SearchResult, TransportType, UserLocation, MapPoint } from "../types";
 
+// The API key must be obtained exclusively from the environment variable process.env.API_KEY.
 export const searchTransportInfo = async (
   query: string,
   type: TransportType,
   location?: UserLocation
 ): Promise<SearchResult> => {
-  // Ensure we safely access process.env in browser environments
-  const apiKey = (window as any).process?.env?.API_KEY || (import.meta as any).env?.VITE_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error("API_KEY_MISSING: Dashboard require valid authentication.");
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
+  // Use process.env.API_KEY directly when initializing the client as per guidelines.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   let contextualPrompt = `Sei l'AI Core di un sistema di navigazione avanzato chiamato TRANSITO. Rispondi in ITALIANO.
 Analisi richiesta: ${query}. `;
@@ -24,18 +19,18 @@ Analisi richiesta: ${query}. `;
   }
   
   if (location) {
-    contextualPrompt += `Coordinate GPS: ${location.lat}, ${location.lng}. Calcola percorsi partendo da qui o zone limitrofe. `;
+    contextualPrompt += `Coordinate GPS Utente: ${location.lat}, ${location.lng}. `;
   }
   
   contextualPrompt += `
 REGOLE DI RISPOSTA (DASHBOARD FORMAT):
 1. TABELLA TELEMETRICA: Genera una tabella Markdown rigorosa.
-   | Mezzo | Partenza | Arrivo | Stato | Costo/Traffico | Note |
-2. TRAFFICO STRADALE: Analizza congestione, incidenti e tempi stimati per tratti urbani.
-3. STATO: [REGOLARE], [RITARDO], [TRAFFICO ALTO], [TRAFFICO FLUIDO].
-4. MODULO COSTI: Includi prezzi biglietti, abbonamenti, pedaggi o ZTL.
-5. SORGENTI: Cerca dati su Google Search (Trenitalia, ATM, Autostrade, ecc.).
-6. STILE: Tecnico, minimale, dashboard-ready.`;
+2. TRAFFICO E POSIZIONI: Identifica la posizione attuale dei mezzi (se disponibile) o i punti chiave della tratta.
+3. STATO: Usa [REGOLARE], [RITARDO], [TRAFFICO ALTO], [TRAFFICO FLUIDO].
+4. GEOLOCALIZZAZIONE CRITICA: Alla fine della risposta, includi SEMPRE un blocco JSON per la visualizzazione mappa se identifichi coordinate o città:
+   [GEO_DATA: [{"lat": 45.4642, "lng": 9.1900, "label": "Milano Centrale - Treno 9513", "type": "TRAIN", "status": "RITARDO"}]]
+5. SORGENTI: Cerca dati su Google Search.
+6. STILE: Tecnico, minimale.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -46,9 +41,24 @@ REGOLE DI RISPOSTA (DASHBOARD FORMAT):
       },
     });
 
-    const text = response.text || "FEED TELEMETRICO ASSENTE. RICONNESSIONE...";
-    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    const fullText = response.text || "FEED TELEMETRICO ASSENTE.";
     
+    // Extract Geo Data
+    let points: MapPoint[] = [];
+    const geoMatch = fullText.match(/\[GEO_DATA:\s*(\[.*?\])\s*\]/s);
+    if (geoMatch && geoMatch[1]) {
+      try {
+        points = JSON.parse(geoMatch[1]);
+      } catch (e) {
+        console.warn("Failed to parse GEO_DATA JSON", e);
+      }
+    }
+
+    // Clean text for display
+    const cleanText = fullText.replace(/\[GEO_DATA:.*?\]/gs, "").trim();
+
+    // Always extract grounding chunks for search grounding.
+    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     const sources = chunks
       .filter(chunk => chunk.web)
       .map(chunk => ({
@@ -58,10 +68,11 @@ REGOLE DI RISPOSTA (DASHBOARD FORMAT):
 
     return {
       query,
-      text,
+      text: cleanText,
       sources,
       timestamp: new Date().toLocaleTimeString('it-IT'),
-      type
+      type,
+      points
     };
   } catch (error: any) {
     console.error("Dashboard Analytics Search failed:", error);

@@ -7,47 +7,39 @@ export const searchTransportInfo = async (
   type: TransportType,
   location?: UserLocation
 ): Promise<SearchResult> => {
-  // Priorità alla chiave inserita manualmente dall'utente
   const manualKey = localStorage.getItem('transito_custom_api_key');
   const apiKey = manualKey || process.env.API_KEY;
 
   if (!apiKey) {
-    throw new Error("CONFIGURAZIONE RICHIESTA: Inserisci la tua Gemini API Key nel menu laterale per attivare il sistema.");
+    throw new Error("API KEY MANCANTE: Inseriscila nel menu laterale (icona Menu -> Inserisci Chiave).");
   }
 
-  // Utilizziamo gemini-3-flash-preview: il modello più veloce e con i limiti gratuiti più ampi
   const ai = new GoogleGenAI({ apiKey });
   
-  let contextualPrompt = `Sei l'AI Core di TRANSITO, un hub di monitoraggio trasporti. Rispondi in ITALIANO.
-Richiesta Utente: ${query}. `;
+  let contextualPrompt = `Sei l'AI di TRANSITO. Rispondi in ITALIANO.
+Cerca info su: ${query}. `;
 
-  if (type !== TransportType.ALL) {
-    contextualPrompt += `Focus hardware su: ${type}. `;
-  }
-  
-  if (location) {
-    contextualPrompt += `Coordinate GPS: ${location.lat}, ${location.lng}. `;
-  }
+  if (type !== TransportType.ALL) contextualPrompt += `Tipo di mezzo richiesto: ${type}. `;
+  if (location) contextualPrompt += `Posizione utente: ${location.lat}, ${location.lng}. `;
   
   contextualPrompt += `
-REGOLE DI RISPOSTA:
-1. TABELLA: Estrai orari, prezzi e mezzi in una tabella Markdown pulita.
-2. STATO: Usa tag [REGOLARE], [RITARDO], [TRAFFICO ALTO] per ogni voce.
-3. GEO_DATA: Fondamentale! Se identifichi città o stazioni, aggiungi a fine testo:
-   [GEO_DATA: [{"lat": 45.0, "lng": 9.0, "label": "Nome Luogo", "type": "TRAIN", "status": "REGOLARE"}]]
-4. FONTI: Utilizza Google Search per dati in tempo reale su scioperi o ritardi odierni.
-5. TONO: Formale, sintetico, tecnologico.`;
+REGOLE DI OUTPUT:
+1. TABELLA: Mostra orari, prezzi o linee in una tabella Markdown.
+2. TRAFFICO URBANO: Se la ricerca riguarda una città o strade, fornisci una sezione "STATO TRAFFICO" con indicatori: [FLUIDO], [RALLENTAMENTI], [INTENSO]. Specifica le zone critiche.
+3. STATUS TAGS: Usa [REGOLARE], [RITARDO], [TRAFFICO ALTO], [CANCELLATO].
+4. GEO_DATA: Fondamentale per la mappa! Aggiungi a fine testo: [GEO_DATA: [{"lat": 45.46, "lng": 9.19, "label": "Duomo - Traffico Intenso", "type": "ROAD", "status": "TRAFFICO ALTO"}]]
+5. FONTI: Usa Google Search per info tempo reale su scioperi, incidenti o cantieri attivi OGGI.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-flash-lite-latest",
       contents: contextualPrompt,
       config: {
         tools: [{ googleSearch: {} }],
       },
     });
 
-    const fullText = response.text || "Nessuna telemetria ricevuta.";
+    const fullText = response.text || "Nessun dato ricevuto dal sistema.";
     
     let points: MapPoint[] = [];
     const geoMatch = fullText.match(/\[GEO_DATA:\s*(\[.*?\])\s*\]/s);
@@ -55,7 +47,7 @@ REGOLE DI RISPOSTA:
       try {
         points = JSON.parse(geoMatch[1]);
       } catch (e) {
-        console.warn("Mappa: Errore parsing coordinate.");
+        console.warn("Errore telemetria mappa: coordinate non valide.");
       }
     }
 
@@ -77,12 +69,8 @@ REGOLE DI RISPOSTA:
       points
     };
   } catch (error: any) {
-    // Gestione specifica per superamento limiti
     if (error.message?.includes("429")) {
-      throw new Error("LIMITE RAGGIUNTO: La quota gratuita del modello è esaurita. Attendi circa 60 secondi prima della prossima scansione.");
-    }
-    if (error.message?.includes("API_KEY_INVALID")) {
-      throw new Error("CHIAVE NON VALIDA: Controlla che l'API Key inserita sia corretta.");
+      throw new Error("LIMITE TEMPORANEO: Quota Google esaurita. Attendi 60 secondi prima di una nuova scansione.");
     }
     throw error;
   }

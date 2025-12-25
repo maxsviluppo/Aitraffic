@@ -3,7 +3,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <title>Transito AI - Monitoraggio Trasporti Real-Time</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -77,6 +77,10 @@
             mask-image: linear-gradient(to right, black 80%, transparent);
             -webkit-mask-image: linear-gradient(to right, black 80%, transparent);
           }
+        }
+        /* Input focus zoom prevention */
+        input, select, textarea {
+            font-size: 16px !important;
         }
     </style>
     <script type="importmap">

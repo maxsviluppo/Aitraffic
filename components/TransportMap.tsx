@@ -80,8 +80,9 @@ export const TransportMap: React.FC<TransportMapProps> = ({ points, userLocation
     if (points.length > 0) {
       const bounds = points.map(p => [p.lat, p.lng] as [number, number]);
       if (userLocation) bounds.push([userLocation.lat, userLocation.lng]);
+      // Zoom più aggressivo: ridotto padding a [10, 10] e aumentato maxZoom a 15
       // @ts-ignore
-      mapRef.current.fitBounds(bounds, { padding: [20, 20], maxZoom: 10 });
+      mapRef.current.fitBounds(bounds, { padding: [10, 10], maxZoom: 15 });
     }
   }, [points, userLocation]);
 

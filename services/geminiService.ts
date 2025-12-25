@@ -2,14 +2,20 @@
 import { GoogleGenAI } from "@google/genai";
 import { SearchResult, TransportType, UserLocation, MapPoint } from "../types";
 
-// The API key must be obtained exclusively from the environment variable process.env.API_KEY.
 export const searchTransportInfo = async (
   query: string,
   type: TransportType,
   location?: UserLocation
 ): Promise<SearchResult> => {
-  // Use process.env.API_KEY directly when initializing the client as per guidelines.
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Ottieni la chiave dal localStorage (inserimento manuale) o dall'ambiente (selezione automatica)
+  const manualKey = localStorage.getItem('transito_custom_api_key');
+  const apiKey = manualKey || process.env.API_KEY;
+
+  if (!apiKey) {
+    throw new Error("API Key mancante. Configurala nel pannello di controllo.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   
   let contextualPrompt = `Sei l'AI Core di un sistema di navigazione avanzato chiamato TRANSITO. Rispondi in ITALIANO.
 Analisi richiesta: ${query}. `;
@@ -43,7 +49,6 @@ REGOLE DI RISPOSTA (DASHBOARD FORMAT):
 
     const fullText = response.text || "FEED TELEMETRICO ASSENTE.";
     
-    // Extract Geo Data
     let points: MapPoint[] = [];
     const geoMatch = fullText.match(/\[GEO_DATA:\s*(\[.*?\])\s*\]/s);
     if (geoMatch && geoMatch[1]) {
@@ -54,10 +59,7 @@ REGOLE DI RISPOSTA (DASHBOARD FORMAT):
       }
     }
 
-    // Clean text for display
     const cleanText = fullText.replace(/\[GEO_DATA:.*?\]/gs, "").trim();
-
-    // Always extract grounding chunks for search grounding.
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     const sources = chunks
       .filter(chunk => chunk.web)
